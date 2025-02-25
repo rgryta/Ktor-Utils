@@ -40,12 +40,18 @@ data class ResponseWrapper<T : Any>(
     }
 }
 
-class Endpoint(val client: HttpClient, val url: String) {
+class Endpoint(
+    val client: HttpClient,
+    val url: String,
+    private val apiInstance: ApiInstance.Companion? = null
+) {
+
+    suspend fun getInstance(): ApiInstance = (apiInstance ?: ApiInstance).getInstance()
 
     suspend inline fun <reified T : Any> get(
         crossinline headers: HeadersBuilder.() -> Unit = { },
     ): ResponseWrapper<T> {
-        val instance = ApiInstance.getInstance()
+        val instance = getInstance()
         val response: HttpResponse = client.get(url) {
             headers {
                 headers()
@@ -64,7 +70,7 @@ class Endpoint(val client: HttpClient, val url: String) {
         contentType: ContentType = ContentType.Application.Json,
         crossinline headers: HeadersBuilder.() -> Unit = { { } }
     ): ResponseWrapper<T> {
-        val instance = ApiInstance.getInstance()
+        val instance = getInstance()
         val response: HttpResponse = client.post(url) {
             headers {
                 headers()
@@ -85,7 +91,7 @@ class Endpoint(val client: HttpClient, val url: String) {
         contentType: ContentType = ContentType.Application.Json,
         crossinline headers: HeadersBuilder.() -> Unit = { { } }
     ): ResponseWrapper<T> {
-        val instance = ApiInstance.getInstance()
+        val instance = getInstance()
         val response: HttpResponse = client.put(url) {
             headers {
                 headers()
@@ -104,7 +110,7 @@ class Endpoint(val client: HttpClient, val url: String) {
     suspend inline fun <reified T : Any> delete(
         crossinline headers: HeadersBuilder.() -> Unit = { { } }
     ): ResponseWrapper<T> {
-        val instance = ApiInstance.getInstance()
+        val instance = getInstance()
         val response: HttpResponse = client.delete(url) {
             headers {
                 headers()
@@ -121,7 +127,7 @@ class Endpoint(val client: HttpClient, val url: String) {
     suspend inline fun <reified T : Any> options(
         crossinline headers: HeadersBuilder.() -> Unit = { },
     ): ResponseWrapper<T> {
-        val instance = ApiInstance.getInstance()
+        val instance = getInstance()
         val response: HttpResponse = client.options(url) {
             headers {
                 headers()
@@ -138,7 +144,7 @@ class Endpoint(val client: HttpClient, val url: String) {
     suspend inline fun <reified T : Any> patch(
         crossinline headers: HeadersBuilder.() -> Unit = { },
     ): ResponseWrapper<T> {
-        val instance = ApiInstance.getInstance()
+        val instance = getInstance()
         val response: HttpResponse = client.patch(url) {
             headers {
                 headers()
@@ -155,7 +161,7 @@ class Endpoint(val client: HttpClient, val url: String) {
     suspend inline fun <reified T : Any> head(
         crossinline headers: HeadersBuilder.() -> Unit = { },
     ): ResponseWrapper<T> {
-        val instance = ApiInstance.getInstance()
+        val instance = getInstance()
         val response: HttpResponse = client.head(url) {
             headers {
                 headers()
@@ -173,7 +179,7 @@ class Endpoint(val client: HttpClient, val url: String) {
         crossinline formParameters: ParametersBuilder.() -> Unit = {},
         crossinline headers: HeadersBuilder.() -> Unit = { },
     ): ResponseWrapper<T> {
-        val instance = ApiInstance.getInstance()
+        val instance = getInstance()
         val response: HttpResponse = client.submitForm(url = url,
             formParameters = parameters {
                 formParameters()

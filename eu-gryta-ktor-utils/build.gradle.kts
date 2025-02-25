@@ -1,7 +1,6 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
-import java.io.ByteArrayOutputStream
 import java.util.Properties
 
 plugins {
