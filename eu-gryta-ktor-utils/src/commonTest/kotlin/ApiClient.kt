@@ -42,3 +42,35 @@ object ApiClient {
         }
     }
 }
+
+object ApiClientSecondary {
+    private const val URL = "https://jsonplaceholder.typicode.com"
+    val client = HttpClient {
+        addLogging()
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                prettyPrint = true
+                isLenient = true
+            })
+        }
+    }
+
+    object Todos {
+        private const val URL = "${ApiClientSecondary.URL}/todos"
+
+        class TodoId(private val todoId: Int) {
+            private val URL: String
+                get() = "${Todos.URL}/$todoId"
+            private val endpoint = Endpoint(
+                client = client,
+                url = URL,
+                apiInstanceClass = ApiInstanceSecondary::class
+            )
+
+            suspend fun get(headers: HeadersBuilder.() -> Unit = { }): ResponseWrapper<Todo> {
+                return endpoint.get { headers() }
+            }
+        }
+    }
+}

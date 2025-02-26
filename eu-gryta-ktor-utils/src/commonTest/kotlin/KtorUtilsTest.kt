@@ -67,11 +67,11 @@ class ApiInstanceTest {
     @BeforeTest
     fun `Lock for test synchronization`() = runTest(testDispatcher) {
         TestSync.mutex.lock()
+        ApiInstance.getInstance().token = ""
     }
 
     @Test
     fun `API is successfully called with header from ApiInstance`() = runTest(testDispatcher) {
-        ApiInstance.getInstance().token = ""
         val endpoint = ApiClient.Todos.TodoId(todoId = 1)
         assertTrue { endpoint.get().response.request.headers.contains(HttpHeaders.Authorization) }
     }
@@ -79,6 +79,58 @@ class ApiInstanceTest {
     @AfterTest
     fun `Cleanup after tests`() = runTest(testDispatcher) {
         ApiInstance.getInstance().token = null
+        TestSync.mutex.unlock()
+    }
+}
+
+class TwoApiInstancesBaseTokenTest {
+
+    private val testDispatcher = StandardTestDispatcher()
+
+    @BeforeTest
+    fun `Lock for test synchronization`() = runTest(testDispatcher) {
+        TestSync.mutex.lock()
+        ApiInstanceSecondary()
+        ApiInstance.getInstance().token = ""
+    }
+
+    @Test
+    fun `API is successfully called with header from ApiInstance`() = runTest(testDispatcher) {
+        val endpoint = ApiClient.Todos.TodoId(todoId = 1)
+        val endpointSecondary = ApiClientSecondary.Todos.TodoId(todoId = 1)
+        assertTrue { endpoint.get().response.request.headers.contains(HttpHeaders.Authorization) }
+        assertFalse { endpointSecondary.get().response.request.headers.contains(HttpHeaders.Authorization) }
+    }
+
+    @AfterTest
+    fun `Cleanup after tests`() = runTest(testDispatcher) {
+        ApiInstance.getInstance().token = null
+        TestSync.mutex.unlock()
+    }
+}
+
+class TwoApiInstancesSecondaryTokenTest {
+
+    private val testDispatcher = StandardTestDispatcher()
+
+    @BeforeTest
+    fun `Lock for test synchronization`() = runTest(testDispatcher) {
+        TestSync.mutex.lock()
+        ApiInstanceSecondary()
+        ApiInstance.getInstance(ApiInstanceSecondary::class).token = ""
+    }
+
+    @Test
+    fun `API is successfully called with header from ApiInstance`() = runTest(testDispatcher) {
+        val endpoint = ApiClient.Todos.TodoId(todoId = 1)
+        val endpointSecondary = ApiClientSecondary.Todos.TodoId(todoId = 1)
+        assertFalse { endpoint.get().response.request.headers.contains(HttpHeaders.Authorization) }
+        assertTrue { endpointSecondary.get().response.request.headers.contains(HttpHeaders.Authorization) }
+    }
+
+    @AfterTest
+    fun `Cleanup after tests`() = runTest(testDispatcher) {
+        ApiInstance.getInstance(ApiInstanceSecondary::class).token = null
         TestSync.mutex.unlock()
     }
 }

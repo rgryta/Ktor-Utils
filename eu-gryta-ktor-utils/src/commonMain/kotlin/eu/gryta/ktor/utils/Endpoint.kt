@@ -23,6 +23,7 @@ import io.ktor.http.isSuccess
 import io.ktor.http.parameters
 import io.ktor.util.reflect.TypeInfo
 import io.ktor.util.reflect.typeInfo
+import kotlin.reflect.KClass
 
 
 data class ResponseWrapper<T : Any>(
@@ -43,10 +44,9 @@ data class ResponseWrapper<T : Any>(
 class Endpoint(
     val client: HttpClient,
     val url: String,
-    private val apiInstance: ApiInstance.Companion? = null
+    private val apiInstanceClass: KClass<out ApiInstance> = ApiInstance::class,
 ) {
-
-    suspend fun getInstance(): ApiInstance = (apiInstance ?: ApiInstance).getInstance()
+    suspend fun getInstance(): ApiInstance = ApiInstance.getInstance(apiInstanceClass)
 
     suspend inline fun <reified T : Any> get(
         crossinline headers: HeadersBuilder.() -> Unit = { },
@@ -65,10 +65,11 @@ class Endpoint(
         return ResponseWrapper(response, typeInfo<T>())
     }
 
+    @Suppress("UNUSED")
     suspend inline fun <reified T : Any> post(
         body: Any,
         contentType: ContentType = ContentType.Application.Json,
-        crossinline headers: HeadersBuilder.() -> Unit = { { } }
+        crossinline headers: HeadersBuilder.() -> Unit = { }
     ): ResponseWrapper<T> {
         val instance = getInstance()
         val response: HttpResponse = client.post(url) {
@@ -86,10 +87,11 @@ class Endpoint(
         return ResponseWrapper(response, typeInfo<T>())
     }
 
+    @Suppress("UNUSED")
     suspend inline fun <reified T : Any> put(
         body: Any,
         contentType: ContentType = ContentType.Application.Json,
-        crossinline headers: HeadersBuilder.() -> Unit = { { } }
+        crossinline headers: HeadersBuilder.() -> Unit = { }
     ): ResponseWrapper<T> {
         val instance = getInstance()
         val response: HttpResponse = client.put(url) {
@@ -107,8 +109,9 @@ class Endpoint(
         return ResponseWrapper(response, typeInfo<T>())
     }
 
+    @Suppress("UNUSED")
     suspend inline fun <reified T : Any> delete(
-        crossinline headers: HeadersBuilder.() -> Unit = { { } }
+        crossinline headers: HeadersBuilder.() -> Unit = { }
     ): ResponseWrapper<T> {
         val instance = getInstance()
         val response: HttpResponse = client.delete(url) {
@@ -124,6 +127,7 @@ class Endpoint(
         return ResponseWrapper(response, typeInfo<T>())
     }
 
+    @Suppress("UNUSED")
     suspend inline fun <reified T : Any> options(
         crossinline headers: HeadersBuilder.() -> Unit = { },
     ): ResponseWrapper<T> {
@@ -141,6 +145,7 @@ class Endpoint(
         return ResponseWrapper(response, typeInfo<T>())
     }
 
+    @Suppress("UNUSED")
     suspend inline fun <reified T : Any> patch(
         crossinline headers: HeadersBuilder.() -> Unit = { },
     ): ResponseWrapper<T> {
@@ -158,6 +163,7 @@ class Endpoint(
         return ResponseWrapper(response, typeInfo<T>())
     }
 
+    @Suppress("UNUSED")
     suspend inline fun <reified T : Any> head(
         crossinline headers: HeadersBuilder.() -> Unit = { },
     ): ResponseWrapper<T> {
@@ -175,6 +181,7 @@ class Endpoint(
         return ResponseWrapper(response, typeInfo<T>())
     }
 
+    @Suppress("UNUSED")
     suspend inline fun <reified T : Any> submitForm(
         crossinline formParameters: ParametersBuilder.() -> Unit = {},
         crossinline headers: HeadersBuilder.() -> Unit = { },
