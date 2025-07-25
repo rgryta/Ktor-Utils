@@ -5,7 +5,7 @@ import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
-import io.ktor.http.HeadersBuilder
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
@@ -36,8 +36,10 @@ object ApiClient {
                 get() = "${Todos.URL}/$todoId"
             private val endpoint = Endpoint(client = client, url = URL)
 
-            suspend fun get(headers: HeadersBuilder.() -> Unit = { }): ResponseWrapper<Todo> {
-                return endpoint.get { headers() }
+            suspend fun get(block: HttpRequestBuilder.() -> Unit = {}): ResponseWrapper<Todo> {
+                return endpoint.get {
+                    block()
+                }
             }
         }
     }
@@ -68,8 +70,8 @@ object ApiClientSecondary {
                 apiInstanceClass = ApiInstanceSecondary::class
             )
 
-            suspend fun get(headers: HeadersBuilder.() -> Unit = { }): ResponseWrapper<Todo> {
-                return endpoint.get { headers() }
+            suspend fun get(): ResponseWrapper<Todo> {
+                return endpoint.get {}
             }
         }
     }

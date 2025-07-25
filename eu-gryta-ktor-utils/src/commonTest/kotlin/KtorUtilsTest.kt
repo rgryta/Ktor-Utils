@@ -1,4 +1,5 @@
 import eu.gryta.ktor.utils.ApiInstance
+import io.ktor.client.request.headers
 import io.ktor.client.statement.request
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
@@ -42,7 +43,9 @@ class EndpointTest {
         val endpoint = ApiClient.Todos.TodoId(todoId = 1)
         assertTrue {
             endpoint.get {
-                append(HttpHeaders.Authorization, "")
+                headers {
+                    append(HttpHeaders.Authorization, "")
+                }
             }.response.request.headers.contains(HttpHeaders.Authorization)
         }
     }
