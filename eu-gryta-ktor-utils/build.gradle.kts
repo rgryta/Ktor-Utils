@@ -154,7 +154,7 @@ mavenPublishing {
 
         scm {
             url.set("https://github.com/rgryta/Ktor-Utils")
-            connection.set("scm:git:git://github.comrgryta/Ktor-Utils.git")
+            connection.set("scm:git:git://github.com/rgryta/Ktor-Utils.git")
             developerConnection.set("scm:git:ssh://git@github.com/rgryta/Ktor-Utils.git")
         }
     }
