@@ -31,5 +31,8 @@ jobs:
       - name: Install Android SDK
         run: sdkmanager "platform-tools" "platforms;android-36"
 
+      - name: Upgrade Yarn Lock files
+        run: ./gradlew kotlinUpgradeYarnLock kotlinWasmUpgradeYarnLock --no-daemon
+
       - name: Build with Gradle
         run: ./gradlew build -x wasmJsBrowserTest -x jvmTest -x iosSimulatorArm64Test -x iosX64Test --no-daemon
