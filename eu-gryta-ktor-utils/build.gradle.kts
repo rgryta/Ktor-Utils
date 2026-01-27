@@ -43,7 +43,32 @@ kotlin {
     }
 
     jvm()
-    //wasmJs()
+
+    js {
+        browser {
+            testTask {
+                enabled = false // Browser tests disabled - use Node.js for testing
+            }
+        }
+        nodejs {
+            testTask {
+                useMocha()
+            }
+        }
+    }
+
+    wasmJs {
+        browser {
+            testTask {
+                enabled = false // Browser tests disabled - use Node.js for testing
+            }
+        }
+        nodejs {
+            testTask {
+                useMocha()
+            }
+        }
+    }
 
     sourceSets {
         // Main
@@ -58,6 +83,14 @@ kotlin {
         }
         iosMain.dependencies {
             api(libs.ktor.client.darwin)
+        }
+        jsMain.dependencies {
+            api(libs.ktor.client.js)
+        }
+        val wasmJsMain by getting {
+            dependencies {
+                api(libs.ktor.client.js)
+            }
         }
         // Test
         commonTest.dependencies {
