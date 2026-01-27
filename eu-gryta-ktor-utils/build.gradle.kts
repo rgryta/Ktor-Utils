@@ -1,11 +1,11 @@
 import org.apache.tools.ant.taskdefs.condition.Os
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKmpLibrary)
     alias(libs.plugins.kotlinx.serialization)
 
     alias(libs.plugins.venniktech)
@@ -21,13 +21,15 @@ val library: String = "ktor.utils"
 version = versions.getProperty("version")
 
 kotlin {
-    androidTarget {
-        compilations.all {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_21)
-                }
-            }
+    androidLibrary {
+        namespace = "$group.$library"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
+
+        withHostTestBuilder {
+        }
+
+        withDeviceTestBuilder {
         }
     }
 
@@ -57,6 +59,7 @@ kotlin {
         }
     }
 
+    @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser {
             testTask {
@@ -96,24 +99,14 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.bundles.ktor.test)
         }
-        androidUnitTest.dependencies {
-            implementation(libs.kotlinx.coroutines.android)
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.android)
+            }
         }
         jvmTest.dependencies {
             implementation(libs.kotlinx.coroutines.swing)
         }
-    }
-}
-
-android {
-    namespace = "$group.$library"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 

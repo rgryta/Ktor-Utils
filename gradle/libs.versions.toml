@@ -1,5 +1,5 @@
 [versions]
-agp = "8.11.1"
+agp = "9.0.0"
 kotlin = "2.2.0"
 kotlinx-coroutines = "1.10.2"
 ktor = "3.2.2"
@@ -39,7 +39,7 @@ ktor-test = [
 ]
 
 [plugins]
-androidLibrary = { id = "com.android.library", version.ref = "agp" }
+androidKmpLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ben-manes = { id = "com.github.ben-manes.versions", version.ref = "ben-manes" }
