@@ -1,6 +1,6 @@
 # Ktor-Utils
 
-[![Version](https://img.shields.io/badge/version-1.1.1-blue)](https://github.com/rgryta/Ktor-Utils/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue)](https://github.com/rgryta/Ktor-Utils/releases)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-purple.svg)](https://kotlinlang.org)
 [![Ktor](https://img.shields.io/badge/Ktor-3.2.2-blue.svg)](https://ktor.io/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
@@ -11,7 +11,14 @@ A **Kotlin Multiplatform** library providing utility classes for building API cl
 
 - **Endpoint** - Type-safe HTTP endpoint wrapper with automatic authorization headers
 - **ApiInstance** - Thread-safe singleton for managing API authentication tokens
-- **ResponseWrapper** - Type-safe response handling with status code checking
+- **ResponseWrapper** - Type-safe response handling with status code checking and error body access
+- **ApiError** - Sealed class hierarchy for typed error handling
+- **Result Extensions** - Functional extensions for ResponseWrapper (toResult, getOrNull, map, etc.)
+- **BearerToken** - Helper class for token management with automatic Bearer prefix
+- **Pagination** - Skip/limit and page-based pagination helpers
+- **Request Interceptors** - Global request interceptor system for headers, logging, etc.
+- **Multipart Forms** - DSL for file uploads and multipart form data
+- **Retry Mechanism** - Configurable retry with exponential backoff
 - **All HTTP Methods** - Support for GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, submitForm
 - **Multiple API Instances** - Support for independent token management across different APIs
 - **Coroutine-based** - Fully suspending functions for async operations
@@ -54,7 +61,7 @@ Add the dependency to your module's `build.gradle.kts`:
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("eu.gryta:ktor.utils:1.1.1")
+            implementation("eu.gryta:ktor.utils:1.3.0")
         }
     }
 }
@@ -198,8 +205,90 @@ suspend fun login(username: String, password: String) {
 
     if (response.status.isSuccess()) {
         val loginData = response.body()
-        ApiInstance.getInstance().token = "Bearer ${loginData.accessToken}"
+        ApiInstance.getInstance().setBearerToken(loginData.accessToken)
     }
+}
+```
+
+### Error Handling with Result Extensions
+
+```kotlin
+suspend fun fetchUserSafely(id: Int): User? {
+    return MyApi.Users.ById(id).get()
+        .onSuccess { user -> println("Fetched: ${user.name}") }
+        .onFailure { status -> println("Failed: $status") }
+        .getOrNull()
+}
+
+suspend fun fetchUserWithDefault(id: Int): User {
+    return MyApi.Users.ById(id).get()
+        .getOrDefault(User(id = 0, name = "Guest", email = ""))
+}
+
+suspend fun fetchUserOrThrow(id: Int): User {
+    return MyApi.Users.ById(id).get().unwrapOrThrow()
+}
+```
+
+### Pagination
+
+```kotlin
+suspend fun fetchAllUsers(): List<User> {
+    val allUsers = mutableListOf<User>()
+    var params = PaginationParams(skip = 0, limit = 50)
+
+    do {
+        val response = MyApi.Users.All.list { paginate(params) }
+        val users = response.body()
+        allUsers.addAll(users)
+        params = params.nextPage
+    } while (users.hasMore(params))
+
+    return allUsers
+}
+```
+
+### Request Interceptors
+
+```kotlin
+// Add global interceptors
+InterceptorRegistry.register(CommonInterceptors.deviceId("device-123"))
+InterceptorRegistry.register(CommonInterceptors.requestId())
+InterceptorRegistry.register(CommonInterceptors.customHeader("X-App-Version", "1.0.0"))
+
+// All requests now include these headers automatically
+val response = MyApi.Users.ById(1).get()
+
+// Clear when done
+InterceptorRegistry.clear()
+```
+
+### File Upload
+
+```kotlin
+suspend fun uploadAvatar(imageBytes: ByteArray): ResponseWrapper<UploadResult> {
+    val endpoint = Endpoint(client = client, url = "https://api.example.com/avatar")
+
+    return endpoint.submitFormWithBinaryData<UploadResult> {
+        append("description", "Profile photo")
+        appendFile("file", "avatar.png", "image/png", imageBytes)
+    }
+}
+```
+
+### Retry with Exponential Backoff
+
+```kotlin
+val config = RetryConfig(
+    maxAttempts = 3,
+    initialDelayMs = 1000,
+    backoffMultiplier = 2.0
+)
+
+suspend fun fetchWithRetry(): User {
+    return retryRequest(config) {
+        MyApi.Users.ById(1).get()
+    }.unwrapOrThrow()
 }
 ```
 
@@ -239,6 +328,109 @@ Type-safe response container.
 | `status` | HTTP status code |
 | `response` | Raw HttpResponse |
 | `body()` | Deserialize response body (throws if not successful) |
+| `bodyOrNull()` | Returns body or null on non-2xx |
+| `errorBody()` | Returns raw error body string on failure |
+| `errorBodyAs<E>()` | Deserialize error body to type |
+| `isSuccess()` | Returns true for 2xx status codes |
+| `isClientError()` | Returns true for 4xx status codes |
+| `isServerError()` | Returns true for 5xx status codes |
+
+### ApiError
+
+Sealed class hierarchy for typed error handling.
+
+| Type | Description |
+|------|-------------|
+| `NetworkError` | General network failure |
+| `TimeoutError` | Request timeout |
+| `ConnectionError` | Connection refused/failed |
+| `BadRequest` | HTTP 400 |
+| `Unauthorized` | HTTP 401 |
+| `Forbidden` | HTTP 403 |
+| `NotFound` | HTTP 404 |
+| `Conflict` | HTTP 409 |
+| `PayloadTooLarge` | HTTP 413 |
+| `TooManyRequests` | HTTP 429 |
+| `ServerError` | HTTP 5xx |
+| `ServiceUnavailable` | HTTP 503 |
+| `DeserializationError` | JSON parsing failure |
+| `HttpError` | Generic HTTP error |
+
+Use `StatusCodeMapper.fromStatusCode(code)` to map status codes to errors.
+
+### Result Extensions
+
+Functional extensions for ResponseWrapper.
+
+| Method | Description |
+|--------|-------------|
+| `toResult()` | Convert to `Result<T>` |
+| `unwrapOrThrow()` | Body or throw ApiError |
+| `getOrNull()` | Body or null on failure |
+| `getOrDefault(default)` | Body or default value |
+| `getOrElse { }` | Body or compute fallback |
+| `map { }` | Transform successful body |
+| `onSuccess { }` | Execute on 2xx only |
+| `onFailure { }` | Execute on non-2xx only |
+
+### BearerToken
+
+Helper class for token management.
+
+| Property/Method | Description |
+|-----------------|-------------|
+| `toString()` | Returns "Bearer {token}" |
+| `rawToken` | Token without Bearer prefix |
+| `BearerToken.fromRaw(token)` | Create from raw token string |
+| `ApiInstance.setBearerToken(token)` | Set token with Bearer prefix |
+| `ApiInstance.clearToken()` | Remove the current token |
+
+### Pagination
+
+Helpers for paginated API requests.
+
+| Class/Method | Description |
+|--------------|-------------|
+| `PaginationParams(skip, limit)` | Skip/limit pagination |
+| `PageParams(page, limit)` | Page-based pagination |
+| `HttpRequestBuilder.paginate(params)` | Add pagination to request |
+| `List<T>.hasMore(params)` | Check if more results exist |
+| `PaginatedResponse<T>` | Wrapper with pagination metadata |
+
+### Request Interceptors
+
+Global request interceptor system.
+
+| Class/Method | Description |
+|--------------|-------------|
+| `RequestInterceptor` | Fun interface for interceptors |
+| `InterceptorRegistry.register(interceptor)` | Add global interceptor |
+| `InterceptorRegistry.unregister(interceptor)` | Remove interceptor |
+| `InterceptorRegistry.clear()` | Remove all interceptors |
+| `CommonInterceptors.customHeader(name, value)` | Add custom header |
+| `CommonInterceptors.deviceId(id)` | Add X-Device-ID header |
+| `CommonInterceptors.requestId()` | Add X-Request-ID header |
+
+### Multipart Forms
+
+DSL for file uploads and multipart form data.
+
+| Method | Description |
+|--------|-------------|
+| `Endpoint.submitFormWithBinaryData()` | Submit multipart form |
+| `FormDataBuilder.append(key, value)` | Add text field |
+| `FormDataBuilder.appendFile(key, filename, contentType, bytes)` | Add file |
+
+### Retry Mechanism
+
+Configurable retry with exponential backoff.
+
+| Class/Method | Description |
+|--------------|-------------|
+| `RetryConfig(maxAttempts, initialDelayMs, backoffMultiplier, retryOn)` | Configuration |
+| `withRetry(config) { }` | Execute with retry |
+| `Throwable.isRetryable()` | Check if error is retryable |
+| `retryRequest(config) { }` | Retry ResponseWrapper operations |
 
 ## Requirements
 
@@ -282,7 +474,7 @@ This project uses [Semantic Versioning](https://semver.org/):
 - **MINOR** version for new functionality (backwards compatible)
 - **PATCH** version for bug fixes
 
-Current version: **1.1.1**
+Current version: **1.3.0**
 
 ## License
 
@@ -303,6 +495,16 @@ This project is licensed under the **Apache License 2.0** - see the [LICENSE](LI
 - [GitHub Packages](https://github.com/rgryta/Ktor-Utils/packages)
 
 ## Changelog
+
+### [1.3.0] - 2026-01-29
+- Enhanced ResponseWrapper with error body access methods
+- Added ApiError sealed class hierarchy for typed error handling
+- Added Result extensions (toResult, getOrNull, map, onSuccess, etc.)
+- Added BearerToken helper class with setBearerToken/clearToken extensions
+- Added pagination helpers (PaginationParams, PageParams)
+- Added request interceptor system with InterceptorRegistry
+- Added multipart form support with FormDataBuilder DSL
+- Added retry mechanism with exponential backoff
 
 ### [1.1.1] - 2025-07-25
 - Allow `HttpRequestBuilder.()` DSL (more flexible) instead of forcing `HeaderBuilder.()`
