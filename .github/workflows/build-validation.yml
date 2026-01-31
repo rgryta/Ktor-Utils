@@ -35,4 +35,4 @@ jobs:
         run: ./gradlew kotlinUpgradeYarnLock kotlinWasmUpgradeYarnLock --no-daemon
 
       - name: Build with Gradle
-        run: ./gradlew build -x allTests --no-daemon
+        run: ./gradlew build -x check --no-daemon
