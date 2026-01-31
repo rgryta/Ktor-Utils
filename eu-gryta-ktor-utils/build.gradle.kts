@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.androidKmpLibrary)
     alias(libs.plugins.kotlinx.serialization)
 
-    alias(libs.plugins.venniktech)
+    alias(libs.plugins.vanniktech)
 }
 
 val versions = Properties()

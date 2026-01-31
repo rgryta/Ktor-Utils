@@ -43,4 +43,4 @@ androidKmpLibrary = { id = "com.android.kotlin.multiplatform.library", version.r
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ben-manes = { id = "com.github.ben-manes.versions", version.ref = "ben-manes" }
-venniktech = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech" }
+vanniktech = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech" }
