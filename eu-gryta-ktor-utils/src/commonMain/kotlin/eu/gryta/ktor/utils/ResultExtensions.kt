@@ -64,7 +64,9 @@ suspend inline fun <T : Any> ResponseWrapper<T>.onSuccess(
     if (status.isSuccess()) {
         try {
             action(body())
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            println("ResponseWrapper.onSuccess handler failed: ${e.message}")
+        }
     }
     return this
 }
