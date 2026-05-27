@@ -1,0 +1,44 @@
+# iOS Kotlin compile validation on github-hosted macos-15 (Xcode 16).
+# Mirrors the pattern established in the App repo via wellmateio/App#44/#45.
+name: iOS
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+env:
+  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096M -Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true"
+
+jobs:
+  ios-compile:
+    name: KMP iOS compile
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'zulu'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Compile iOS Kotlin sources
+        env:
+          GPR_USERNAME: ${{ secrets.GPR_USERNAME }}
+          GPR_TOKEN: ${{ secrets.GPR_TOKEN }}
+        run: ./gradlew compileKotlinIosSimulatorArm64 compileKotlinIosArm64 --no-daemon
